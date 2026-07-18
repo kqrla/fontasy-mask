@@ -1,0 +1,576 @@
+<!doctype html>
+<html>
+<head>
+  <script>
+    try { window.localStorage.getItem('x') } catch (e) {
+      const store = new Map()
+      const shim = { getItem:(k)=>store.has(k)?store.get(k):null, setItem:(k,v)=>store.set(k,String(v)), removeItem:(k)=>store.delete(k), clear:()=>store.clear(), key:(i)=>Array.from(store.keys())[i]??null, get length(){return store.size} }
+      Object.defineProperty(window,'localStorage',{value:shim,configurable:true})
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;700;800;900&family=Roboto:wght@400;500;700;900&family=Montserrat:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#000;--bg-card:#1c1c1e;--bg-el:#2c2c2e;--bg-in:#3a3a3c;
+      --acc:#0a84ff;--acc-dim:rgba(10,132,255,.14);
+      --text:#fff;--ts:#8e8e93;--tt:#636366;
+      --border:#38383a;--ok:#30d158;--err:#ff453a;
+      --sep:rgba(255,255,255,.07);
+      --r-sm:10px;--r-md:13px;--r-lg:16px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{background:var(--bg);color:var(--text);font-family:'Poppins',-apple-system,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased;height:auto;min-height:0}
+    #root{display:flex;flex-direction:column}
+    .hdr{padding:13px 12px 7px;display:flex;align-items:center;gap:8px}
+    .logo{width:23px;height:23px;background:linear-gradient(135deg,#ff6b9d,#c44dff);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
+    .hdr-t .title{font-size:14px;font-weight:600;letter-spacing:-.3px}
+    .hdr-t .sub{font-size:9px;color:var(--ts);font-weight:300}
+
+    .sec-lbl{font-size:9px;font-weight:500;color:var(--tt);letter-spacing:.9px;padding:8px 12px 2px}
+    .card{margin:0 10px 5px;background:var(--bg-card);border-radius:var(--r-lg);overflow:hidden}
+    .ctrl{display:flex;align-items:center;padding:8px 12px;gap:8px;border-bottom:1px solid var(--sep)}
+    .ctrl:last-child{border-bottom:none}
+    .ctrl-lbl{font-size:11px;color:var(--ts);flex-shrink:0;min-width:62px}
+    .ctrl-r{display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end}
+    .sl-wrap{flex:1;display:flex;align-items:center;gap:6px}
+    input[type=range]{-webkit-appearance:none;flex:1;height:2px;background:var(--bg-in);border-radius:2px;outline:none;cursor:pointer}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:#fff;border-radius:50%;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+    .sl-v{font-size:11px;color:var(--text);font-weight:500;min-width:28px;text-align:right}
+    input[type=text],select{background:var(--bg-in);border:none;outline:none;color:var(--text);font:11px/1.6 'Poppins',sans-serif;border-radius:6px;padding:3px 8px;flex:1;min-width:0}
+    select{cursor:pointer;-webkit-appearance:none;padding-right:18px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238e8e93'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center}
+    select option{background:var(--bg-card);color:var(--text)}
+    .tog{width:32px;height:19px;border-radius:10px;background:var(--bg-in);position:relative;transition:background .2s;cursor:pointer;flex-shrink:0}
+    .tog.on{background:var(--acc)}
+    .tog::after{content:'';position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+    .tog.on::after{transform:translateX(13px)}
+
+    /* preview */
+    .preview-wrap{margin:0 10px 5px;background:var(--bg-card);border-radius:var(--r-lg);overflow:hidden;position:relative}
+    #preview{width:100%;display:block;cursor:pointer;min-height:80px}
+    .preview-hint{font-size:9px;color:var(--tt);text-align:center;padding:2px 0 6px}
+
+    /* color swatches */
+    .swatches{display:flex;gap:4px;flex-wrap:wrap}
+    .sw{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s;flex-shrink:0}
+    .sw.active{border-color:var(--acc)}
+    .sw:hover{border-color:var(--ts)}
+
+    /* pattern selector */
+    .pat-btns{display:flex;gap:3px;flex-wrap:wrap}
+    .pat-btn{padding:2px 8px;border-radius:20px;font:9px/1.6 'Poppins',sans-serif;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--tt);transition:all .1s;white-space:nowrap}
+    .pat-btn.active{background:var(--acc);border-color:var(--acc);color:#fff}
+    .pat-btn:hover:not(.active){border-color:var(--acc);color:var(--acc)}
+
+    /* context menu */
+    #ctx-menu{position:fixed;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:6px 0;min-width:160px;z-index:100;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+    #ctx-menu.show{display:block}
+    .ctx-section{padding:3px 10px;font-size:9px;color:var(--tt);font-weight:500;letter-spacing:.5px}
+    .ctx-item{padding:4px 12px;font-size:11px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:6px}
+    .ctx-item:hover{background:var(--acc-dim)}
+    .ctx-item .dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ts);flex-shrink:0}
+    .ctx-item.active .dot{background:var(--acc);border-color:var(--acc)}
+    .ctx-item .check{width:12px;font-size:11px;flex-shrink:0;color:var(--ts)}
+    .ctx-item.active .check{color:var(--acc)}
+    .ctx-sep{height:1px;background:var(--sep);margin:4px 0}
+    .ctx-swatches{padding:4px 12px;display:flex;gap:4px}
+
+    /* status */
+    .status-bar{margin:0 10px 5px;background:var(--bg-card);border-radius:var(--r-md);padding:6px 10px;display:none;font-size:10px;color:var(--ts)}
+    .status-bar.show{display:flex;align-items:center;gap:6px}
+    .st-dot{width:5px;height:5px;border-radius:50%;background:var(--acc);flex-shrink:0;animation:pulse 1.2s infinite}
+    .st-dot.ok{background:var(--ok);animation:none}
+    .st-dot.err{background:var(--err);animation:none}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    .footer{padding:7px 10px;display:flex;gap:6px}
+    .btn{flex:1;padding:10px 12px;border:none;outline:none;cursor:pointer;border-radius:var(--r-sm);font:12px/1 'Poppins',sans-serif;font-weight:500;transition:opacity .15s,transform .1s}
+    .btn:active:not(:disabled){transform:scale(.97)}
+    .btn-acc{background:linear-gradient(135deg,#ff6b9d,#c44dff);color:#fff}
+    .btn-acc:disabled{opacity:.3;cursor:default;transform:none}
+    .btn-ghost{background:var(--bg-card);color:var(--ts);flex:0 0 auto}
+  </style>
+</head>
+<body>
+<div id="root">
+  <div class="hdr">
+    <div class="logo">Fm</div>
+    <div class="hdr-t"><div class="title">fontasy mask</div><div class="sub">fabric pattern lettering</div></div>
+  </div>
+
+  <div class="sec-lbl">text</div>
+  <div class="card">
+    <div class="ctrl">
+      <span class="ctrl-lbl">text</span>
+      <input type="text" id="text-inp" value="HELLO" maxlength="30" spellcheck="false">
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">font</span>
+      <select id="font-family">
+        <option value="Inter">Inter</option>
+        <option value="Poppins">Poppins</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Montserrat">Montserrat</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">style</span>
+      <select id="font-style">
+        <option value="Bold" selected>Bold</option>
+        <option value="Black">Black</option>
+        <option value="ExtraBold">ExtraBold</option>
+        <option value="Medium">Medium</option>
+        <option value="Regular">Regular</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">size</span>
+      <div class="sl-wrap">
+        <input type="range" id="font-size" min="40" max="400" value="140">
+        <span class="sl-v" id="font-size-v">140</span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">spacing</span>
+      <div class="sl-wrap">
+        <input type="range" id="spacing" min="-20" max="60" value="8">
+        <span class="sl-v" id="spacing-v">8</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-lbl">preview · right-click letters to customize</div>
+  <div class="preview-wrap">
+    <canvas id="preview" width="640" height="200"></canvas>
+  </div>
+
+  <div class="sec-lbl">defaults</div>
+  <div class="card">
+    <div class="ctrl">
+      <span class="ctrl-lbl">pattern</span>
+      <div class="pat-btns" id="def-pattern">
+        <button class="pat-btn active" data-p="gingham">gingham</button>
+        <button class="pat-btn" data-p="polka">polka</button>
+        <button class="pat-btn" data-p="stripes">stripes</button>
+        <button class="pat-btn" data-p="checkered">checker</button>
+        <button class="pat-btn" data-p="solid">solid</button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">color</span>
+      <div class="swatches" id="def-color"></div>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">stitch</span>
+      <div class="ctrl-r"><div class="tog on" id="def-stitch"></div></div>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">texture</span>
+      <div class="ctrl-r"><div class="tog on" id="def-texture"></div></div>
+    </div>
+  </div>
+
+  <div class="status-bar" id="status-bar">
+    <div class="st-dot" id="st-dot"></div>
+    <span id="st-text">ready</span>
+  </div>
+
+  <div class="footer">
+    <button class="btn btn-ghost" id="clear-btn">clear</button>
+    <button class="btn btn-acc" id="insert-btn">✦ insert</button>
+  </div>
+</div>
+
+<!-- context menu -->
+<div id="ctx-menu"></div>
+
+<script>
+const PATTERNS = ['gingham','polka','stripes','checkered','solid']
+const PATTERN_LABELS = { gingham:'Gingham', polka:'Polka dots', stripes:'Stripes', checkered:'Checkered', solid:'Solid' }
+const PALETTES = [
+  { name:'Red',    c1:'#e63835', c2:'#ffffff' },
+  { name:'Blue',   c1:'#1f87e6', c2:'#ffffff' },
+  { name:'Green',  c1:'#43a047', c2:'#ffffff' },
+  { name:'Pink',   c1:'#ed40a0', c2:'#ffffff' },
+  { name:'Yellow', c1:'#fcd935', c2:'#734d1a' },
+  { name:'Teal',   c1:'#00897b', c2:'#ffffff' },
+  { name:'Purple', c1:'#7b1fa2', c2:'#ffffff' },
+  { name:'Brown',  c1:'#8c5430', c2:'#f5f0eb' },
+]
+
+// ── state ──
+let text = 'HELLO'
+let fontFamily = 'Inter'
+let fontStyle = 'Bold'
+let fontSize = 140
+let letterSpacing = 8
+let defPattern = 'gingham'
+let defPalette = 0
+let defStitch = true
+let defTexture = true
+let perLetter = {} // index → {pattern, paletteIdx, stitch, texture}
+let letterRects = [] // [{x, w, charIdx}] for click detection
+let ctxLetterIdx = -1
+
+const $$ = id => document.getElementById(id)
+
+// ── height reporting ──
+let lastH = 0, rafId = 0
+function rh() {
+  const h = Math.ceil($$('root').getBoundingClientRect().height)
+  if (h && h !== lastH) { lastH = h; parent.postMessage({ pluginMessage: { type: 'resize', height: h } }, '*') }
+}
+if (typeof ResizeObserver !== 'undefined') {
+  new ResizeObserver(() => { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(rh) }).observe($$('root'))
+}
+
+// ── init default color swatches ──
+function buildSwatches(container, activeIdx, onClick) {
+  container.innerHTML = ''
+  PALETTES.forEach((p, i) => {
+    const sw = document.createElement('div')
+    sw.className = 'sw' + (i === activeIdx ? ' active' : '')
+    sw.style.background = p.c1
+    sw.title = p.name
+    sw.addEventListener('click', () => onClick(i))
+    container.appendChild(sw)
+  })
+}
+buildSwatches($$('def-color'), defPalette, i => {
+  defPalette = i
+  buildSwatches($$('def-color'), defPalette, arguments.callee)
+  perLetter = {}
+  renderPreview()
+})
+
+// ── controls ──
+$$('text-inp').addEventListener('input', () => { text = $$('text-inp').value; perLetter = {}; renderPreview() })
+$$('font-family').addEventListener('change', () => { fontFamily = $$('font-family').value; loadPreviewFont(); renderPreview() })
+$$('font-style').addEventListener('change', () => { fontStyle = $$('font-style').value; loadPreviewFont(); renderPreview() })
+$$('font-size').addEventListener('input', () => { fontSize = +$$('font-size').value; $$('font-size-v').textContent = fontSize; renderPreview() })
+$$('spacing').addEventListener('input', () => { letterSpacing = +$$('spacing').value; $$('spacing-v').textContent = letterSpacing; renderPreview() })
+
+// default pattern buttons
+$$('def-pattern').addEventListener('click', e => {
+  const btn = e.target.closest('.pat-btn'); if (!btn) return
+  $$('def-pattern').querySelectorAll('.pat-btn').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+  defPattern = btn.dataset.p
+  perLetter = {}
+  renderPreview()
+})
+
+// default stitch toggle
+$$('def-stitch').addEventListener('click', () => {
+  defStitch = !defStitch
+  $$('def-stitch').classList.toggle('on', defStitch)
+  perLetter = {}
+  renderPreview()
+})
+
+// default texture toggle
+$$('def-texture').addEventListener('click', () => {
+  defTexture = !defTexture
+  $$('def-texture').classList.toggle('on', defTexture)
+  perLetter = {}
+  renderPreview()
+})
+
+// clear
+$$('clear-btn').addEventListener('click', () => {
+  text = ''; $$('text-inp').value = ''; perLetter = {}; renderPreview()
+})
+
+// ── insert ──
+$$('insert-btn').addEventListener('click', () => {
+  if (!text.trim()) return
+  const letters = []
+  for (let i = 0; i < text.length; i++) {
+    const ls = getLS(i)
+    letters.push({ char: text[i], pattern: ls.pattern, paletteIdx: ls.paletteIdx, stitch: ls.stitch, texture: ls.texture })
+  }
+  $$('insert-btn').disabled = true
+  $$('insert-btn').textContent = '...'
+  parent.postMessage({ pluginMessage: {
+    type: 'insert', letters, fontSize, spacing: letterSpacing, fontFamily, fontStyle
+  }}, '*')
+})
+
+// ── messages from code.ts ──
+window.addEventListener('message', e => {
+  const msg = e.data && e.data.pluginMessage; if (!msg) return
+  if (msg.type === 'done') {
+    setStatus('inserted ✓', 'ok')
+    $$('insert-btn').disabled = false; $$('insert-btn').textContent = '✦ insert'
+  }
+  if (msg.type === 'error') {
+    setStatus(msg.message, 'err')
+    $$('insert-btn').disabled = false; $$('insert-btn').textContent = '✦ insert'
+  }
+  if (msg.type === 'progress') setStatus('letter ' + msg.current + '/' + msg.total, 'loading')
+  if (msg.type === 'status') setStatus(msg.text, 'loading')
+})
+
+function setStatus(txt, state) {
+  $$('status-bar').classList.add('show')
+  $$('st-text').textContent = txt
+  $$('st-dot').className = 'st-dot' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : '')
+  if (state === 'ok') setTimeout(() => $$('status-bar').classList.remove('show'), 2500)
+}
+
+// ── per-letter settings ──
+function getLS(i) {
+  if (perLetter[i]) return perLetter[i]
+  return { pattern: defPattern, paletteIdx: defPalette, stitch: defStitch, texture: defTexture }
+}
+
+// ── preview font loading ──
+const WEIGHT_MAP = { Regular: '400', Medium: '500', SemiBold: '600', Bold: '700', ExtraBold: '800', Black: '900' }
+async function loadPreviewFont() {
+  const weight = WEIGHT_MAP[fontStyle] || '700'
+  try { await document.fonts.load(weight + ' 48px "' + fontFamily + '"') } catch {}
+}
+
+// ── preview rendering ──
+function hexToRgba(hex, a) {
+  const h = hex.replace('#','')
+  return 'rgba(' + parseInt(h.slice(0,2),16) + ',' + parseInt(h.slice(2,4),16) + ',' + parseInt(h.slice(4,6),16) + ',' + a + ')'
+}
+
+function drawPatternOnCtx(ctx, pattern, palIdx, w, h) {
+  const pal = PALETTES[palIdx] || PALETTES[0]
+  if (pattern === 'solid') {
+    ctx.fillStyle = pal.c1; ctx.fillRect(0, 0, w, h); return
+  }
+  if (pattern === 'gingham') {
+    ctx.fillStyle = pal.c2; ctx.fillRect(0, 0, w, h)
+    const s = Math.max(3, Math.round(Math.min(w, h) / 10))
+    ctx.fillStyle = hexToRgba(pal.c1, 0.5)
+    for (let y = 0; y < h; y += s * 2) ctx.fillRect(0, y, w, s)
+    for (let x = 0; x < w; x += s * 2) ctx.fillRect(x, 0, s, h)
+    return
+  }
+  if (pattern === 'polka') {
+    ctx.fillStyle = pal.c1; ctx.fillRect(0, 0, w, h)
+    ctx.fillStyle = pal.c2
+    const r = Math.max(2, Math.round(Math.min(w, h) / 14))
+    const gap = r * 3.5
+    for (let y = r; y < h; y += gap) {
+      const off = (Math.floor(y / gap) % 2) * (gap / 2)
+      for (let x = r + off; x < w; x += gap) {
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
+      }
+    }
+    return
+  }
+  if (pattern === 'stripes') {
+    ctx.fillStyle = pal.c2; ctx.fillRect(0, 0, w, h)
+    ctx.fillStyle = pal.c1
+    const s = Math.max(3, Math.round(Math.min(w, h) / 8))
+    for (let y = 0; y < h; y += s * 2) ctx.fillRect(0, y, w, s)
+    return
+  }
+  if (pattern === 'checkered') {
+    ctx.fillStyle = pal.c2; ctx.fillRect(0, 0, w, h)
+    ctx.fillStyle = pal.c1
+    const s = Math.max(3, Math.round(Math.min(w, h) / 10))
+    for (let y = 0; y < h; y += s) for (let x = 0; x < w; x += s) {
+      if ((Math.floor(x/s) + Math.floor(y/s)) % 2 === 0) ctx.fillRect(x, y, s, s)
+    }
+    return
+  }
+}
+
+function renderPreview() {
+  const canvas = $$('preview')
+  const dpr = window.devicePixelRatio || 1
+  const cw = 320
+  const weight = WEIGHT_MAP[fontStyle] || '700'
+  const previewSize = Math.min(80, Math.max(30, fontSize * 0.5))
+
+  // Measure total text width
+  const tmpC = document.createElement('canvas')
+  const tmpCtx = tmpC.getContext('2d')
+  tmpCtx.font = weight + ' ' + previewSize + 'px "' + fontFamily + '", sans-serif'
+
+  let totalTextW = 0
+  const charWidths = []
+  for (let i = 0; i < text.length; i++) {
+    const m = tmpCtx.measureText(text[i])
+    charWidths.push(m.width)
+    totalTextW += m.width
+  }
+  const previewSpacing = letterSpacing * (previewSize / fontSize)
+  totalTextW += Math.max(0, text.length - 1) * previewSpacing
+
+  const ch = Math.max(80, previewSize + 40)
+  canvas.width = cw * dpr
+  canvas.height = ch * dpr
+  canvas.style.width = cw + 'px'
+  canvas.style.height = ch + 'px'
+
+  const ctx = canvas.getContext('2d')
+  ctx.scale(dpr, dpr)
+  ctx.clearRect(0, 0, cw, ch)
+
+  if (!text.length) return
+
+  const startX = Math.max(10, (cw - totalTextW) / 2)
+  const baseY = ch * 0.72
+
+  letterRects = []
+  let x = startX
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    const cw2 = charWidths[i]
+    const ls = getLS(i)
+
+    if (char !== ' ') {
+      // Create temp canvas for compositing
+      const tw = Math.ceil(cw2) + 20
+      const th = ch
+      const tmp2 = document.createElement('canvas')
+      tmp2.width = tw; tmp2.height = th
+      const tc = tmp2.getContext('2d')
+
+      // Draw letter shape
+      tc.font = weight + ' ' + previewSize + 'px "' + fontFamily + '", sans-serif'
+      tc.fillStyle = '#000'
+      tc.fillText(char, 10, baseY)
+
+      // Composite pattern into letter
+      tc.globalCompositeOperation = 'source-in'
+      drawPatternOnCtx(tc, ls.pattern, ls.paletteIdx, tw, th)
+
+      // Draw onto main canvas
+      ctx.drawImage(tmp2, x - 10, 0)
+
+      // Texture grain overlay
+      if (ls.texture) {
+        const txC = document.createElement('canvas')
+        txC.width = tw; txC.height = th
+        const txCtx = txC.getContext('2d')
+        // Draw letter shape as mask
+        txCtx.font = weight + ' ' + previewSize + 'px "' + fontFamily + '", sans-serif'
+        txCtx.fillStyle = '#000'
+        txCtx.fillText(char, 10, baseY)
+        txCtx.globalCompositeOperation = 'source-in'
+        // Generate noise grain
+        const imgData = txCtx.createImageData(tw, th)
+        const d = imgData.data
+        for (let p = 0; p < d.length; p += 4) {
+          const v = Math.random()
+          if (v < 0.35) {
+            d[p] = 0; d[p+1] = 0; d[p+2] = 0; d[p+3] = Math.floor(Math.random() * 50 + 15)
+          } else if (v > 0.85) {
+            d[p] = 255; d[p+1] = 255; d[p+2] = 255; d[p+3] = Math.floor(Math.random() * 30 + 10)
+          }
+        }
+        txCtx.putImageData(imgData, 0, 0)
+        ctx.drawImage(txC, x - 10, 0)
+      }
+
+      // Stitch outline
+      if (ls.stitch) {
+        ctx.save()
+        ctx.font = weight + ' ' + previewSize + 'px "' + fontFamily + '", sans-serif'
+        ctx.setLineDash([3, 3])
+        ctx.lineWidth = 1.2
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)'
+        ctx.strokeText(char, x, baseY)
+        ctx.restore()
+      }
+    }
+
+    letterRects.push({ x: x, w: cw2, idx: i })
+    x += cw2 + previewSpacing
+  }
+}
+
+// ── preview interaction ──
+const canvas = $$('preview')
+const ctxMenu = $$('ctx-menu')
+
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault()
+  const rect = canvas.getBoundingClientRect()
+  const mx = e.clientX - rect.left
+  const hitIdx = letterRects.findIndex(lr => mx >= lr.x && mx <= lr.x + lr.w)
+  if (hitIdx < 0 || text[hitIdx] === ' ') { hideCtxMenu(); return }
+
+  ctxLetterIdx = hitIdx
+  showCtxMenu(e.clientX, e.clientY)
+})
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect()
+  const mx = e.clientX - rect.left
+  const hitIdx = letterRects.findIndex(lr => mx >= lr.x && mx <= lr.x + lr.w)
+  if (hitIdx < 0 || text[hitIdx] === ' ') return
+
+  ctxLetterIdx = hitIdx
+  const lr = letterRects[hitIdx]
+  showCtxMenu(rect.left + lr.x + lr.w / 2, rect.top + 30)
+})
+
+document.addEventListener('click', e => {
+  if (!ctxMenu.contains(e.target) && e.target !== canvas) hideCtxMenu()
+})
+
+function showCtxMenu(cx, cy) {
+  const ls = getLS(ctxLetterIdx)
+  let html = '<div class="ctx-section">letter "' + text[ctxLetterIdx] + '" · pattern</div>'
+  PATTERNS.forEach(p => {
+    html += '<div class="ctx-item' + (ls.pattern === p ? ' active' : '') + '" data-action="pattern" data-val="' + p + '">'
+    html += '<span class="dot"></span>' + PATTERN_LABELS[p] + '</div>'
+  })
+  html += '<div class="ctx-sep"></div>'
+  html += '<div class="ctx-section">color</div>'
+  html += '<div class="ctx-swatches">'
+  PALETTES.forEach((p, i) => {
+    html += '<div class="sw' + (ls.paletteIdx === i ? ' active' : '') + '" data-action="color" data-val="' + i + '" style="background:' + p.c1 + '" title="' + p.name + '"></div>'
+  })
+  html += '</div>'
+  html += '<div class="ctx-sep"></div>'
+  html += '<div class="ctx-item' + (ls.stitch ? ' active' : '') + '" data-action="stitch">'
+  html += '<span class="check">' + (ls.stitch ? '✓' : '○') + '</span>Edge stitch</div>'
+  html += '<div class="ctx-item' + (ls.texture ? ' active' : '') + '" data-action="texture">'
+  html += '<span class="check">' + (ls.texture ? '✓' : '○') + '</span>Fabric texture</div>'
+
+  ctxMenu.innerHTML = html
+  ctxMenu.classList.add('show')
+
+  // Position
+  const bw = document.body.clientWidth
+  const bh = document.body.clientHeight
+  let mx = Math.min(cx, bw - 170)
+  let my = Math.min(cy, bh - 240)
+  ctxMenu.style.left = mx + 'px'
+  ctxMenu.style.top = my + 'px'
+
+  // Wire events
+  ctxMenu.querySelectorAll('[data-action]').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation()
+      const action = el.dataset.action
+      const val = el.dataset.val
+      if (!perLetter[ctxLetterIdx]) perLetter[ctxLetterIdx] = { ...getLS(ctxLetterIdx) }
+      if (action === 'pattern') perLetter[ctxLetterIdx].pattern = val
+      if (action === 'color') perLetter[ctxLetterIdx].paletteIdx = +val
+      if (action === 'stitch') perLetter[ctxLetterIdx].stitch = !perLetter[ctxLetterIdx].stitch
+      if (action === 'texture') perLetter[ctxLetterIdx].texture = !perLetter[ctxLetterIdx].texture
+      renderPreview()
+      showCtxMenu(parseFloat(ctxMenu.style.left), parseFloat(ctxMenu.style.top))
+    })
+  })
+}
+
+function hideCtxMenu() { ctxMenu.classList.remove('show') }
+
+// ── init ──
+loadPreviewFont().then(renderPreview)
+setTimeout(renderPreview, 200)
+</script>
+</body>
+</html>

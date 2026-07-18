@@ -1,0 +1,17 @@
+{
+  "name": "Fontasy mask",
+  "id": "c1d0a2b6-8406-4f8f-924b-738649a36738",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": [
+    "figma"
+  ],
+  "isTool": true,
+  "relaunchButtons": [
+    {
+      "command": "c1d0a2b6-8406-4f8f-924b-738649a36738",
+      "name": "Fontasy mask"
+    }
+  ],
+  "ui": "ui.html"
+}
